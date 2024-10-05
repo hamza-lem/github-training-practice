@@ -1,0 +1,15 @@
+name: Build
+on: push
+#   push:
+#     branches: master
+#   pull_request:
+#     branches: master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: run echo
+        run: |
+          echo "Run my First job"
+          echo "{{ toJSON(github) }}"
