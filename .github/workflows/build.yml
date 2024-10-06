@@ -20,17 +20,26 @@ on:
 env:
   NODE_VERSION: 20.14.0
 
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
 concurrency:
-  group: build
-  cancel-in-progress: true
+  group: 'pages'
+  cancel-in-progress: false
 
 jobs:
   build:
     runs-on: ubuntu-latest
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    # outputs:
-    #   output_data: ${{ steps.build_id.outputs.output_data}}
+    outputs:
+      output_data: ${{ steps.build_id.outputs.output_data}}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -58,14 +67,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: next-artifact
-          path: .next/static
+          path: .next/server/app
           retention-days: 1
-      # - name: run echo
-      #   id: build_id
-      #   run: |
-      #     echo "Run my First job"
-      #     echo 'output_data=value' >> $GITHUB_OUTPUT
-      #     echo "display secrets ${{ secrets.SECRET_VALUE }}"
+      - name: run echo
+        id: build_id
+        run: |
+          echo "Run my First job"
+          echo 'output_data=value' >> $GITHUB_OUTPUT
+          echo "display secrets ${{ secrets.SECRET_VALUE }}"
 
   action-jobs:
     needs: build
@@ -100,10 +109,22 @@ jobs:
     uses: ./.github/workflows/re-use.yml
     with:
       artifact-name: next-artifact
+    
 
   print-deploy:
     needs: deploy
     runs-on: ubuntu-latest
     steps:
+      - name: Copy Reports to Specific Directories
+        run: |
+          mkdir -p gh-pages/app
+          cp -r next-artifact gh-pages/app
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./gh-pages
+          publish_branch: gh-pages    
       - name: Print deployment details
         run: echo '${{needs.deploy.outputs.result}}'
+      
