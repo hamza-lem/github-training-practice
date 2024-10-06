@@ -12,4 +12,28 @@ jobs:
       - name: run echo
         run: |
           echo "Run my First job"
-          echo "{{ toJSON(github) }}"
+          echo "${{ toJSON(github) }}"
+
+  action-jobs:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Use Node.js 12.x
+        uses: actions/setup-node@v1
+        with: 
+          node-version: 20.0.0
+      - name: Install dependencies
+        run: npm ci
+      - name: echo repository
+        run: ls -l
+
+  matrix-jobs:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        browser: ['chrome', 'firefox']
+    steps:
+      - name: Run E2E tests
+        run: echo "Run E2E tests with ${{ matrix.browser }}"
