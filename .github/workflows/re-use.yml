@@ -5,8 +5,13 @@ on:
     inputs:
       artifact-name:
         description: The name of the deployable artifact files
-        required: false
+        required: true
         default: dist
+        type: string
+      artifact-path:
+        description: The path of the deployable artifact files
+        required: true
+        default: path
         type: string
     outputs:
       result:
@@ -23,6 +28,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ${{ inputs.artifact-name }}
+          path: ${{ inputs.artifact-path }}
       - name: List files
         run: ls
       - name: Output information

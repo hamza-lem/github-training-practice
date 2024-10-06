@@ -109,16 +109,21 @@ jobs:
     uses: ./.github/workflows/re-use.yml
     with:
       artifact-name: next-artifact
+      artifact-path: next-artifact
     
 
-  print-deploy:
+  deploy-page:
     needs: deploy
     runs-on: ubuntu-latest
     steps:
-      - name: Copy Reports to Specific Directories
+      - name: Copy app to Specific Directories
         run: |
           mkdir -p gh-pages/app
-          cp -r next-artifact gh-pages/app
+          pwd
+          cd gh-pages/app && ls -l
+          cp -r artifact-path gh-pages/app
+          ls -la
+          
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
