@@ -1,18 +1,71 @@
 name: Build
-on: push
-#   push:
-#     branches: master
-#   pull_request:
-#     branches: master
+run-name: Build-Workflow
+on:
+  # workflow_dispatch:
+  #     inputs: 
+  #       input-data:
+  #         description: 'Add your Input Data'
+  #         required: true
+  push:
+    branches: [master, feature*]
+  pull_request:
+    types: 
+      - opened
+      - synchronize
+      - closed
+    branches:
+      - master
+      - feature*
+
+env:
+  NODE_VERSION: 20.14.0
+
+concurrency:
+  group: build
+  cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    # outputs:
+    #   output_data: ${{ steps.build_id.outputs.output_data}}
     steps:
-      - name: run echo
-        run: |
-          echo "Run my First job"
-          echo "${{ toJSON(github) }}"
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          # cache: npm
+      - name: cache
+        id: cache-hit
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ env.NODE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+      - name: display cache-hit
+        run: echo "${{ toJSON(steps.cache-hit.outputs)}}"
+  
+      - name: install projects dependencies
+        if: steps.cache-hit.outputs.cache-hit != true
+        run : |
+          npm ci
+      - name: build project
+        run: npm run build
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: next-artifact
+          path: .next/static
+          retention-days: 1
+      # - name: run echo
+      #   id: build_id
+      #   run: |
+      #     echo "Run my First job"
+      #     echo 'output_data=value' >> $GITHUB_OUTPUT
+      #     echo "display secrets ${{ secrets.SECRET_VALUE }}"
 
   action-jobs:
     needs: build
@@ -22,14 +75,18 @@ jobs:
         uses: actions/checkout@v2
       - name: Use Node.js 12.x
         uses: actions/setup-node@v1
-        with: 
-          node-version: 20.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
       - name: Install dependencies
         run: npm ci
       - name: echo repository
         run: ls -l
+      - name: Display output of build job
+        run: echo "${{ needs.build.outputs.output_data }}"  
 
   matrix-jobs:
+    if: github.head_ref == 'refs/heads/master'
+    continue-on-error: true
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -37,3 +94,4 @@ jobs:
     steps:
       - name: Run E2E tests
         run: echo "Run E2E tests with ${{ matrix.browser }}"
+
