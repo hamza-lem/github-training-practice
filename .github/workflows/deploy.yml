@@ -1,5 +1,5 @@
-name: Build
-run-name: Build-Workflow
+name: Deploy
+# run-name: Build-Workflow
 on:
   # workflow_dispatch:
   #     inputs:
@@ -47,18 +47,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          # cache: npm
-      - name: cache
-        id: cache-hit
-        uses: actions/cache@v4
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-${{ env.NODE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
-      - name: display cache-hit
-        run: echo "${{ toJSON(steps.cache-hit.outputs)}}"
-
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
       - name: install projects dependencies
-        if: steps.cache-hit.outputs.cache-hit != true
         run: |
           npm ci
       - name: build project
@@ -67,7 +58,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: next-artifact
+          name: next-out
           path: out
           retention-days: 1
       - name: run echo
@@ -77,46 +68,26 @@ jobs:
           echo 'output_data=value' >> $GITHUB_OUTPUT
           echo "display secrets ${{ secrets.SECRET_VALUE }}"
 
-  # action-jobs:
-  #   needs: build
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@v4
-  #     - name: Use Node.js 
-  #       uses: actions/setup-node@v4
-  #       with:
-  #         node-version: ${{ env.NODE_VERSION }}
-  #     - name: Install dependencies
-  #       run: npm ci
-  #     - name: echo repository
-  #       run: ls -l
-  #     - name: Display output of build job
-  #       run: echo "${{ needs.build.outputs.output_data }}"
-
-  matrix-jobs:
-    if: github.head_ref == 'refs/heads/master'
-    continue-on-error: true
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        browser: ['chrome', 'firefox']
-    steps:
-      - name: Run E2E tests
-        run: echo "Run E2E tests with ${{ matrix.browser }}"
-
   deploy:
+    runs-on: ubuntu-latest
     needs: build
-    uses: ./.github/workflows/re-use.yml
-    with:
-      artifact-name: next-artifact
-      artifact-path: out
-    
+    steps:
+      - name: Get Code
+        uses: actions/download-artifact@v4
+        with:
+          name: next-out
+          path: out
+      - name: List files
+        run: |
+          ls -la
+          pwd
+           mkdir -p gh-pages
+           cp -r out gh-pages
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./out
+          publish_branch: gh-pages
 
-  # print-status:
-  #   needs: deploy
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Print deployment details
-  #       run: echo '${{needs.deploy.outputs.result}}'
       
