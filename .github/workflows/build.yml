@@ -62,12 +62,13 @@ jobs:
         run: |
           npm ci
       - name: build project
-        run: npm run build
+        run: |
+          npm run build
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: next-artifact
-          path: .next/server/app
+          path: out
           retention-days: 1
       - name: run echo
         id: build_id
@@ -76,22 +77,22 @@ jobs:
           echo 'output_data=value' >> $GITHUB_OUTPUT
           echo "display secrets ${{ secrets.SECRET_VALUE }}"
 
-  action-jobs:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Use Node.js 12.x
-        uses: actions/setup-node@v1
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-      - name: Install dependencies
-        run: npm ci
-      - name: echo repository
-        run: ls -l
-      - name: Display output of build job
-        run: echo "${{ needs.build.outputs.output_data }}"
+  # action-jobs:
+  #   needs: build
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v4
+  #     - name: Use Node.js 
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: ${{ env.NODE_VERSION }}
+  #     - name: Install dependencies
+  #       run: npm ci
+  #     - name: echo repository
+  #       run: ls -l
+  #     - name: Display output of build job
+  #       run: echo "${{ needs.build.outputs.output_data }}"
 
   matrix-jobs:
     if: github.head_ref == 'refs/heads/master'
@@ -109,27 +110,13 @@ jobs:
     uses: ./.github/workflows/re-use.yml
     with:
       artifact-name: next-artifact
-      artifact-path: next-artifact
+      artifact-path: out
     
 
-  deploy-page:
-    needs: deploy
-    runs-on: ubuntu-latest
-    steps:
-      - name: Copy app to Specific Directories
-        run: |
-          mkdir -p gh-pages/app
-          pwd
-          cd gh-pages/app && ls -l
-          cp -r artifact-path gh-pages/app
-          ls -la
-          
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./gh-pages
-          publish_branch: gh-pages    
-      - name: Print deployment details
-        run: echo '${{needs.deploy.outputs.result}}'
+  # print-status:
+  #   needs: deploy
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Print deployment details
+  #       run: echo '${{needs.deploy.outputs.result}}'
       

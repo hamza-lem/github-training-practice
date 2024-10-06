@@ -13,15 +13,15 @@ on:
         required: true
         default: path
         type: string
-    outputs:
-      result:
-        description: The result of the deployment operation
-        value: ${{ jobs.deploy.outputs.outcome }}
+    # outputs:
+    #   result:
+    #     description: The result of the deployment operation
+    #     value: ${{ jobs.deploy.outputs.outcome }}
 
 jobs:
   deploy:
-    outputs:
-      outcome: ${{ steps.set-result.outputs.step-result }}
+    # outputs:
+    #   outcome: ${{ steps.set-result.outputs.step-result }}
     runs-on: ubuntu-latest
     steps:
       - name: Get Code
@@ -30,9 +30,18 @@ jobs:
           name: ${{ inputs.artifact-name }}
           path: ${{ inputs.artifact-path }}
       - name: List files
-        run: ls
-      - name: Output information
-        run: echo "Deploying & uploading..."
-      - name: Set result output
-        id: set-result
-        run: echo "step-result=success" >> $GITHUB_OUTPUT
+        run: |
+          ls -la
+          pwd
+           mkdir -p gh-pages
+           cp -r out gh-pages
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./out
+          publish_branch: gh-pages
+
+    #   - name: Set result output
+    #     id: set-result
+    #     run: echo "step-result=success" >> $GITHUB_OUTPUT
