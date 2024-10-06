@@ -2,14 +2,14 @@ name: Build
 run-name: Build-Workflow
 on:
   # workflow_dispatch:
-  #     inputs: 
+  #     inputs:
   #       input-data:
   #         description: 'Add your Input Data'
   #         required: true
   push:
     branches: [master, feature*]
   pull_request:
-    types: 
+    types:
       - opened
       - synchronize
       - closed
@@ -47,10 +47,10 @@ jobs:
           key: ${{ runner.os }}-node-${{ env.NODE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
       - name: display cache-hit
         run: echo "${{ toJSON(steps.cache-hit.outputs)}}"
-  
+
       - name: install projects dependencies
         if: steps.cache-hit.outputs.cache-hit != true
-        run : |
+        run: |
           npm ci
       - name: build project
         run: npm run build
@@ -82,7 +82,7 @@ jobs:
       - name: echo repository
         run: ls -l
       - name: Display output of build job
-        run: echo "${{ needs.build.outputs.output_data }}"  
+        run: echo "${{ needs.build.outputs.output_data }}"
 
   matrix-jobs:
     if: github.head_ref == 'refs/heads/master'
@@ -95,3 +95,15 @@ jobs:
       - name: Run E2E tests
         run: echo "Run E2E tests with ${{ matrix.browser }}"
 
+  deploy:
+    needs: build
+    uses: ./.github/workflows/re-use.yml
+    with:
+      artifact-name: next-artifact
+
+  print-deploy:
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print deployment details
+        run: echo '${{needs.deploy.outputs.result}}'
