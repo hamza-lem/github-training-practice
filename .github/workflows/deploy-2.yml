@@ -1,0 +1,65 @@
+name: deploy 2
+
+on: push
+
+env:
+  NODE_VERSION: 20.14.0
+
+jobs:
+  # Build job
+  build:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          # cache: npm
+      - name: cache
+        id: cache-hit
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ env.NODE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+      - name: display cache-hit
+        run: echo "${{ toJSON(steps.cache-hit.outputs)}}"
+
+      - name: install projects dependencies
+        if: steps.cache-hit.outputs.cache-hit != true
+        run: |
+          npm ci
+      - name: build project
+        run: |
+          npm run build
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          name: github-pages
+          path: out
+          retention-days: 1
+
+  # Deploy job
+  deploy:
+    # Add a dependency to the build job
+    needs: build
+
+    # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
+    permissions:
+      pages: write # to deploy to Pages
+      id-token: write # to verify the deployment originates from an appropriate source
+
+    # Deploy to the github-pages environment
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    # Specify runner + deployment step
+    runs-on: ubuntu-latest
+    steps:
+        - name: Deploy to GitHub Pages
+          id: deployment
+          uses: actions/deploy-pages@v4 
